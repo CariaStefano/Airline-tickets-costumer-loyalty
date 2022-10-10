@@ -1,0 +1,507 @@
+---
+title: "caria_stefano_11_82_204"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Report tecnico progetto Esame Analisi dei Big Data
+Il seguente progetto riguarda l'analisi un dataset di biglietti aerei venduti online da una compagnia aerea che effettua collegamenti dalle principali città italiane alle principali città europee.
+
+# Analisi
+Il presente progetto contiene i seguenti punti:
+
+# Analisi descrittiva del dataset:
+- a. Descrizione dei dati osservati (indici statistici univariati e/o bivariati, rappresentazioni grafiche, ecc.);
+- b. Segmentazione della clientela sulla base delle variabili osservate;
+- c. Suddivisione casuale del dataset in campione di apprendimento (2/3 · n) e campione test (1/3 · n). Stima, sul campione di apprendimento, di 3 modelli (Lasso, PCR, PLS ) in funzione della variabile "Cfidelity" (-> factor, levels:alta, bassa.  Creata tramite ricodifica della Variabile "Fidelity").
+
+# Importazione del dataset
+
+```{r}
+load("~/Documents/r Wdirectory/Dati_Caria.RData")
+summary(dati)
+str(dati)
+sum(is.na(dati)) #non sono presenti valori mancanti
+
+```
+
+Per prima cosa, è stato importato il dataset. Dal summary si può osservare che non sono presenti valori mancanti. Dalla funzione str() si osserva che ci sono 11 variabili num e 7 factor.
+
+# Analisi esplorativa del dataset: grafici
+
+
+```{r }
+
+library("tidyverse")
+
+#1
+tab <-dati %>% 
+  count(Arrival) %>%
+  mutate(proportion= n/sum(n)) %>%
+  mutate(Arrival= reorder(Arrival, proportion))
+
+tab %>%
+  ggplot(aes(Arrival, proportion))+ 
+  geom_bar(stat = "identity") 
+```
+
+La proporzione di biglietti venduti per le  4 diverse destinazioni
+
+```{r }
+
+tab2 <-dati %>% 
+  count(Departure) %>%
+  mutate(proportion= n/sum(n)) %>%
+  mutate(Departure= reorder(Departure, proportion))
+
+
+tab2 %>%
+  ggplot(aes(Departure, proportion))+ 
+  geom_bar(stat = "identity") 
+```
+
+percentuale di biglietti venduti in base ai 6 diversi aereoporti di provenienza
+
+
+```{r }
+library("gridExtra")
+tab3 <- dati %>% 
+  count(ModPag) %>%
+  mutate(proportion= n/sum(n)) %>%
+  mutate(ModPag = reorder(ModPag, proportion))
+
+tab3<-tab3 %>%         
+  ggplot(aes(ModPag, proportion))+
+  geom_bar(stat = "identity") # quasi il 90% (0.87) dei clienti ha utilizzato 
+#la carta di credito per il pagamento
+
+#4
+tab4 <- dati %>% 
+  count(Luggage) %>%
+  mutate(proportion= n/sum(n)) %>%
+  mutate(Luggage = reorder(Luggage, proportion))
+
+tab4<- tab4 %>%         
+  ggplot(aes(Luggage, proportion))+
+  geom_bar(stat = "identity") # il 54% dei clienti ha effettuato una 
+#prenotazione senza imbarcare un bagaglio aggiuntivo  
+grid.arrange(tab3, tab4, ncol=2)
+
+```
+
+Quasi il 90% (0.87) dei clienti ha utilizzato la carta di credito per il pagamento, mentre dal grafico a sinistra osserviamo che il 54% dei clienti ha effettuato una prenotazione senza imbarcare un bagaglio aggiuntivo
+```{r }
+
+#5
+tab5 <- dati %>% 
+  count(PriorBoard) %>%
+  mutate(proportion= n/sum(n)) %>%
+  mutate(PriorBoard = reorder(PriorBoard, proportion))
+
+tab5<- tab5 %>%         
+  ggplot(aes(PriorBoard, proportion))+
+  geom_bar(stat = "identity") # il 52% (0.517) dei clienti ha effettuato una 
+#prenotazione con imbarco prioritario
+
+#6
+tab6 <- dati %>% 
+  count(Seat) %>%
+  mutate(proportion= n/sum(n)) %>%
+  mutate(Seat = reorder(Seat, proportion))
+
+tab6<- tab6 %>%         
+  ggplot(aes(Seat, proportion))+
+  geom_bar(stat = "identity") # il 51% (0.509) dei clienti ha effettuato una 
+#prenotazione del posto a sedere
+
+
+
+#7
+tab7 <- dati %>% 
+  count(Return) %>%
+  mutate(proportion= n/sum(n)) %>%
+  mutate(Return = reorder(Return, proportion))
+
+tab7<-tab7 %>%         
+  ggplot(aes(Return, proportion))+
+  geom_bar(stat = "identity") # il 54% (0.537) dei clienti ha effettuato una 
+#prenotazione solo andata
+grid.arrange(tab5, tab6, tab7, ncol=3)
+
+
+
+
+```
+
+Il primo grafico a sinistra mostra che il 52% (0.517) dei clienti ha effettuato una prenotazione con imbarco prioritario. Dal secondo grafico si osserva che il 51% (0.509) dei clienti ha effettuato una prenotazione del posto a sedere. Dal terzo grafico invece, si osserva che il 54% (0.537) dei clienti ha effettuato una  prenotazione solo andata.
+
+
+```{r }
+filter(dati) %>% 
+  ggplot(aes(Unit_Ticket, Fidelity, color= Arrival)) +
+  geom_point() 
+
+```
+
+Il prezzo dei biglietti di Londra è più alto rispetto a quello di Amsterdam e Madrid. Il costo inferiore sembra essere dovuto al fatto che l'indice di fidelizzazione del cliente è basso per quest'ultime, mentre assume valori alti per Londra.
+
+```{r }
+filter(dati) %>% 
+  ggplot(aes(Fidelity, Discount, color= Arrival)) +
+  geom_point() 
+
+
+```
+
+I clienti che acquistano i biglietti per Londra risultano essere 
+più fedeli  rispetto a quelli di Amsterdam e Madrid e per questo godono di uno 
+sconto maggiore a dispetto di quest'ultimi
+
+
+
+```{r }
+dati  %>% 
+  ggplot(aes( y=Fidelity, Departure)) + 
+  geom_boxplot(coef=3) +
+  geom_jitter(width= 0.1, alpha =0.2)
+ 
+```
+l'indice di fedeltà risulta essere mediamente più alto per le prenotazioni 
+con partenza da Venezia
+
+
+```{r }
+dati  %>% 
+  ggplot(aes( y=Fidelity, Arrival)) + 
+  geom_boxplot(coef=3) +
+  geom_jitter(width= 0.1, alpha =0.2)
+
+
+```
+Per quanto riguarda l'areoporto di Arrivo, l'indice di fedeltà risulta essere mediamente più alto per le prenotazioni con arrivo a Londra 
+
+
+```{r }
+library("lubridate")
+dates<-ymd(dati$Data)
+
+
+month_day_year<-tibble(date = dates, 
+                       month = month(dates, label = TRUE),
+                       day = day(dates),
+                       year = year(dates)) 
+
+
+head(month_day_year)
+#11  graf
+dati2= dati 
+dati2<- mutate(dati2, month= month_day_year$month ) #inserisco una nuova colonna 
+dati2  %>% 
+  ggplot(aes(month, Unit_Ticket)) + 
+  geom_boxplot(coef=3) +
+  geom_jitter(width= 0.1, alpha =0.2)
+#le distribuzioni del prezzo del biglietto nel corso dell'anno è molto simile. Il prezzo del biglietto più basso si è registrato a Novembre, il più prezzo più alto è stato registato a maggio, quello più basso a novembre.
+
+
+
+```
+
+Dopo aver creato un oggetto tibble per dividere giorno, mese e anno, inserisco una nuova colonna in una copia del dataset (dati2). tramite ggplot, ottengodei boxplot riguardanti le distribuzioni del prezzo del biglietto nel corso dell'anno. tali distribuzioni risultano essere molto simile. Il prezzo del biglietto più basso si è registrato a Novembre, il più prezzo più alto è stato registato a maggio.
+
+
+
+
+
+```{r }
+#ricodifica dell'indice di fedeltà
+dati2$clientFidelity[dati2$Fidelity<=50] = "basso"
+dati2$clientFidelity[dati2$Fidelity>50] = "alto"
+
+fedeltà <-as.factor(dati2$clientFidelity)
+class(fedeltà)
+dati2<- dati2 %>% mutate(Cfidelity= fedeltà)
+
+#eliminazione colonne rindondanti dopo la ricodifica
+dati2= dati2[-21] #elimino ClientFidelity
+dati2= dati2[-7] #elimino la vecchia colonna Fidelity
+dati2= dati2[-19]
+
+
+
+#12
+tab12 <- dati2 %>% 
+  count(Cfidelity) %>%
+  mutate(proportion= n/sum(n)) %>%
+  mutate(Cfidelity = reorder(Cfidelity, proportion))
+
+tab12 %>%         
+  ggplot(aes(Cfidelity, proportion))+
+  geom_bar(stat = "identity") 
+
+```
+é stato ricodificato l'indice di fedelizzazione: è stata creata una nuova variabile Cfidelity) in cui se l'indice di fidelizzazione (tra 0 e 100) è maggiore di 50 verrà assegnato il valore "alto", se invece sarà minore di 50 "basso". Il 66% (0.659) dei clienti ha un indice di fidelizzazione basso  (minore al 50) mentre il 34 % dei clienti ha un valore alto per questo indice (maggiore di 50)
+
+
+
+```{r }
+
+library(dslabs)
+
+
+arrival_departures <- count(dati, Departure, Arrival) #creo un nuovo oggetto 
+#tibble in cui conto i viaggi in base a aereoporto di partenza e aereoporto 
+#di arrivo
+
+arrival_departures
+summary(arrival_departures)
+
+
+#13
+p1<-arrival_departures %>% unite(flights, Departure, Arrival) #unisco le colonne 
+#Unite tramite la funzione Unite della libreria Tidyr
+p1
+
+p1 %>%
+  mutate( flights= reorder(flights, n)) %>%
+  ggplot(aes(flights, n)) +
+  geom_bar(stat= "identity")+
+  coord_flip()+
+  theme(axis.text.y = element_text(size = 8)) +
+  xlab("")
+
+
+
+```
+Si osserva che i biglietti maggiormente venduti nel sito sono per il volo Roma-Londra, seguito da Milano-Amsterdam e Roma-Amsterdam
+
+```{r }
+index<- dati2$Unit_Ticket; x<- dati2$Unit_Ticket[index]
+m <-mean(x) ; s<- sd(x)
+c(average=m, sd= s )
+
+norm_dist<- data.frame(x= seq(-4, 4, len=50)*s + m) %>% 
+  mutate(density= dnorm(x, m, s))
+
+#14
+dati2 %>% ggplot(aes(Unit_Ticket))+
+  geom_histogram(aes(y=..density..), binwidth = 1, color = "black")+
+  geom_line(aes(x, density), data= norm_dist, lwd=1.5)
+
+
+
+```
+La distribuzione del prezzo dei biglietti venduti sembra essere approssimabile a una normale.
+
+# PCA
+
+```{r }
+library(FactoMineR) 
+
+attach(dati)
+new_dati<- tibble(Unit_Ticket, Fidelity, BookTime, Taxes, Discount, NPax, NBookMonth,NAccWebWeek, NComplaintsYear, NRefundYear,NCancelYear, Seat, PriorBoard, Luggage, Return, Departure, Arrival, ModPag)
+
+new_dati2 <- tibble(Unit_Ticket, Fidelity, BookTime, Taxes, Discount, NPax, NBookMonth,NAccWebWeek, NComplaintsYear, NRefundYear, NCancelYear, Arrival )
+res <- PCA(new_dati2,
+           scale.unit = TRUE,
+           ind.sup = 12000: 23998,
+           quanti.sup = 6:10,
+           quali.sup = 12,
+           ncp=8)
+
+
+
+
+```
+
+```{r }
+
+summary(res)
+
+```
+La PCA può essere utile per la segmentazione della clientela. Si osserva che il primo asse fattoriale è correlato positivamente con le variabili : Unit_Tickets, Fidelity, BookTime, Taxes, Discount. Il secondo asse fattoriale è correlato positivamente con NCancelYear. inoltre sono state proiettate le variabili illustrative.  
+
+
+```{r }
+plot(res, cex=0.8, habillage="Arrival", label = "none")
+
+```
+Si osserva che i punti che i punti sul primo quadrante riguardano la tipologia di clienti con un alto indice di fidelizzazione per le quali prenotazioni si caratterizzano per il costo del biglietto elevato, per uno sconto alto sulla prenotazione, e per  un alto numero di giorni di anticipo sulla prenotazione rispetto alla partenza.
+
+
+# Suddivisione casuale del dataset in training set e test set
+```{r }
+
+ 
+
+set.seed(123)
+x=model.matrix(Cfidelity ~.,dati2)[,-1]
+
+train = sample(nrow(x), nrow(x)*2/3)
+test=(-train)
+dati_test = dati2[-train, ] #creo il test set
+dati_train = dati2[train,]
+
+y=as.numeric(dati2$Cfidelity)
+y.test=as.numeric(y[test])
+
+```
+
+Il dataset è stato diviso casualmente per 2/3 in train e per 1/3 test set
+
+#lasso
+
+
+```{r }
+library(glmnet)
+grid=10^seq(10,-2,length=100)
+lasso.mod=glmnet(x[train ,],as.numeric(y[train]),alpha=1,lambda=grid) 
+plot(lasso.mod)
+
+cv.out= cv.glmnet(x[train ,],as.numeric(y[train]),alpha=1)
+plot(cv.out)
+bestlam=cv.out$lambda.min
+lasso.pred=predict(lasso.mod,s=bestlam ,newx=x[test,])
+table(y.test, round(lasso.pred,0)) 
+
+```
+778 malclassificati su 8000 --> 0.0971 -->9,7%
+
+```{r }
+out=glmnet(x,y,alpha=1,lambda=grid)
+lasso.coef=predict(out,type="coefficients",s=bestlam)[1:19,] 
+lasso.coef 
+lasso.coef[lasso.coef!=0] 
+
+```
+solamente 8 dei coefficenti stimati hanno valore diverso da 0. Per cui il lasso model scelto dalla cross-validation coniene solo 8 variabili
+
+
+```{r }
+summary(lasso.mod)
+
+```
+
+#PCR
+
+```{r }
+library(pls)
+
+pcr_model <- pcr(as.numeric(Cfidelity) ~ ., data = dati2, 
+                 scale = TRUE, 
+                 validation = "CV")
+
+summary(pcr_model)
+
+
+
+```
+
+```{r }
+
+# Plot the cross validation MSE
+validationplot(pcr_model, val.type="MSEP") 
+
+```
+Il MSE si appiattisce già  per un numero di componenti principali pari a 5.
+
+```{r }
+
+coefplot(pcr_model) #il modello con 7 componenti principali ha un coefficiente di regressione negativo molto alto 
+
+
+```
+il modello con 7 componenti principali ha un coefficiente di regressione positivo alto 
+
+```{r }
+
+pcr_model <- pcr(as.numeric(Cfidelity )~., ncomp = 7,
+                 data = dati2,
+                 subset= train,
+                 scale = TRUE, 
+                 validation = "CV")
+
+summary(pcr_model) 
+```
+
+I valori 59.19    59.20    59.20    59.24    61.19    61.31    62.18 rappresentano la variabilità percentuale spiegata per la variabile y 
+
+```{r }
+pcr.pred= predict(pcr_model ,x[test,] ,ncomp=7)
+mean((pcr.pred-y.test)^2) # MSE 0.08625655
+table(as.numeric(dati_test$Cfidelity), round(pcr.pred,0)) #
+
+```
+777 casi su 8000 sono malclassificati, quindi il modello in un'ottica di previsione funziona bene con un errore di malclassificazione di 794/8000= 0.099 -->9,9% 
+
+#PLS
+
+```{r }
+plsr_model <- plsr(as.numeric(Cfidelity)~., data = dati2 , 
+                   subset = train,
+                   scale = TRUE, 
+                   validation = "CV")
+
+
+
+
+summary(plsr_model)
+
+```
+
+I valori 60.93    64.15    65.40    65.56    65.65 rappresentano la percentuale di variabilità spiegata per la variabile y. Rispetto al modello PCR risulta leggermente più alta.
+
+```{r }
+lm2<-lm(as.numeric(dati_train$Cfidelity)~plsr_model$scores[,1:10])
+summary(lm2) 
+
+```
+il valore dell' Adjusted R-squared:  0.657. 
+
+```{r }
+validationplot(plsr_model)
+
+```
+
+
+```{r }
+# considerando solo le prime 7 componenti...
+
+plsr_model <- plsr(as.numeric(Cfidelity)~., ncomp = 7,
+                   data = dati2,
+                   subset= train,
+                   scale = TRUE, 
+                   validation = "CV")
+
+
+summary(plsr_model)
+
+```
+
+la percentuale di varianza in fedelt con 7 componenti 65.71. Risulta più alta della percentuale spiegata col modello finale dal modello PCR a parità di componenti principali (7)
+
+```{r }
+lm2<-lm(as.numeric(dati_train$Cfidelity)~plsr_model$scores[,1:7])
+summary(lm2)
+```
+ Il valore di Adjusted R-squared:  0.657 rimane quasi invariato ma questa volta sono state utilizzate solamente le prime 7 componenti principali
+
+
+```{r }
+pls.pred=predict(plsr_model,x[test,],ncomp=7)
+
+
+mean((pls.pred-y.test)^2) # MSE = 0.07939584
+table(as.numeric(dati_test$Cfidelity), round(pls.pred,0)) # 775 malclassificati su 8000. 775/8000= 0.0968 --> 9,68%
+
+
+```
+
+Il MSE = 0.07939584. Ci sono stati 775 malclassificati su 8000. 775/8000= 0.0968 --> 9,68%
+
+# Conclusioni
+
+Successivamente all'analisi esplorativa del dataset, si è proceduto alla creazione della variabile Cfidelity, ottenuta dalla variabile originale "Fidelity". In seguito, si è suddiviso il dataset casualmente per 2/3 in train e per 1/3 test set. Sono stati applicati 3 modelli sul training set con i quali si è prevista la varibile Cfidelity. Il modello Lasso ha classificato erroneamente 778 osservazioni sulle 8000 del test set. Il modello creato con PCR ha classificato erroneamente 777 osservazioni.
+Infine il modello PLS ha classificato erroneamente 775 osservazioni del test set.
