@@ -5,4 +5,5 @@ L'analisi statistica è stata realizzata in R utilizzando i pacchetti: *tidyvers
 
 **Visualizza** il [report](https://htmlpreview.github.io/?https://github.com/CariaStefano/Airline-tickets-customer-loyalty/blob/main/Report/Airline%20ticket_customers%20loyalty.html)
 
-[Creative and Minimal Portfolio Presentation.pdf](https://github.com/CariaStefano/Airline-tickets-customer-loyalty/files/13228331/Creative.and.Minimal.Portfolio.Presentation.pdf)
+![Creative and Minimal Portfolio Presentation](https://github.com/CariaStefano/Airline-tickets-customer-loyalty/assets/79990918/777c5e88-f869-4a18-8bdb-727fc3e78dcc)
+
