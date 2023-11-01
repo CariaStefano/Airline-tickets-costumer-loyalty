@@ -4,3 +4,4 @@ Il progetto svolto ha riguardato l'analisi di un dataset di **biglietti aerei** 
 L'analisi statistica è stata realizzata in R utilizzando i pacchetti: *tidyverse, FactoMineR, dslabs, glmnet*.
 
 **Visualizza** il [report](https://htmlpreview.github.io/?https://github.com/CariaStefano/Airline-tickets-customer-loyalty/blob/main/Report/Airline%20ticket_customers%20loyalty.html)
+<img width="123" alt="Screenshot 2023-11-01 alle 15 35 13" src="https://github.com/CariaStefano/Airline-tickets-customer-loyalty/assets/79990918/9e65ebe8-b4d1-4af8-9d66-db0e2d589bd3">
